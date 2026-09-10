@@ -32,6 +32,7 @@ export default async function ReviewPage() {
           {queue.map((userProblem) => (
             <ReviewRow
               key={userProblem.id}
+              id={userProblem.id}
               title={userProblem.problem.title}
               difficulty={userProblem.problem.difficulty}
               pattern={userProblem.problem.pattern}
