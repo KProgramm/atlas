@@ -1,13 +1,11 @@
-import { getOrCreateDbUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { getOrCreateDbUser } from "@/lib/auth";
+import { getDashboardStats } from "@/services/dashboard";
+import { formatMinutes, formatScore } from "@/utils/format";
 
 export default async function DashboardPage() {
   const user = await getOrCreateDbUser();
-
-  const problemCount = await prisma.userProblem.count({
-    where: { userId: user.id },
-  });
+  const stats = await getDashboardStats(user.id);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-black">
@@ -32,28 +30,70 @@ export default async function DashboardPage() {
           </div>
         </div>
         <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-          {problemCount === 0
+          {stats.totalProblems === 0
             ? "You haven't imported any problems yet."
-            : `You're tracking ${problemCount} problem${problemCount === 1 ? "" : "s"}.`}
+            : `You're tracking ${stats.totalProblems} problem${stats.totalProblems === 1 ? "" : "s"}.`}
         </p>
 
         <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Problems tracked</p>
-            <p className="mt-1 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
-              {problemCount}
+          <StatCard label="Problems tracked" value={String(stats.totalProblems)} />
+          <StatCard label="Due for review" value={String(stats.reviewsDueToday)} />
+          <StatCard label="Review sessions" value={String(stats.totalReviewsCompleted)} />
+          <StatCard label="Overall confidence" value={formatScore(stats.overallConfidence)} />
+          <StatCard
+            label="Time spent reviewing"
+            value={formatMinutes(stats.timeSpentReviewingMinutes)}
+          />
+        </div>
+
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            Recent activity
+          </h2>
+          {stats.recentActivity.length === 0 ? (
+            <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+              Complete a review session to see it here.
             </p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Due for review</p>
-            <p className="mt-1 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">—</p>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Review sessions</p>
-            <p className="mt-1 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">—</p>
-          </div>
+          ) : (
+            <ul className="mt-4 divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950">
+              {stats.recentActivity.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-4 px-5 py-4"
+                >
+                  <div>
+                    <p className="font-medium text-zinc-900 dark:text-zinc-50">
+                      {item.problemTitle}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                      {item.completedAt.toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    {formatScore(item.overallConfidence)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-zinc-900 dark:text-zinc-50">
+        {value}
+      </p>
     </div>
   );
 }
