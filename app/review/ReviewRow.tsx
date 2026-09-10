@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const DIFFICULTY_COLOR: Record<string, string> = {
   Easy: "text-green-600 dark:text-green-400",
   Medium: "text-amber-600 dark:text-amber-400",
@@ -5,12 +7,14 @@ const DIFFICULTY_COLOR: Record<string, string> = {
 };
 
 export function ReviewRow({
+  id,
   title,
   difficulty,
   pattern,
   url,
   nextReviewAt,
 }: {
+  id: string;
   title: string;
   difficulty: string;
   pattern: string | null;
@@ -40,14 +44,12 @@ export function ReviewRow({
           <span>· {nextReviewAt === null ? "New" : "Due"}</span>
         </div>
       </div>
-      <button
-        type="button"
-        disabled
-        title="Coming in Milestone 4"
-        className="rounded-full border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-400 disabled:cursor-not-allowed dark:border-zinc-700 dark:text-zinc-500"
+      <Link
+        href={`/review/session/${id}`}
+        className="rounded-full border border-zinc-900 px-3 py-1.5 text-sm font-medium text-zinc-900 hover:bg-zinc-900 hover:text-white dark:border-zinc-50 dark:text-zinc-50 dark:hover:bg-zinc-50 dark:hover:text-zinc-900"
       >
         Start Review
-      </button>
+      </Link>
     </li>
   );
 }
