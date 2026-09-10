@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { openai, CHAT_MODEL } from "@/lib/ai";
+import { applyReviewOutcome } from "@/services/mastery";
 
 export type QuestionType = "pattern" | "approach" | "complexity" | "follow_up";
 
@@ -260,7 +261,7 @@ export async function submitAnswer(
   const sessionId = question.reviewSession.id;
 
   if (question.type === "follow_up") {
-    return finalizeSession(sessionId, problem);
+    return finalizeSession(sessionId, question.reviewSession.userProblem.id, problem);
   }
 
   const baseQuestions = question.reviewSession.questions.filter((q) => q.type !== "follow_up");
@@ -295,7 +296,11 @@ export async function submitAnswer(
   };
 }
 
-async function finalizeSession(sessionId: string, problem: ProblemInfo): Promise<SubmitResult> {
+async function finalizeSession(
+  sessionId: string,
+  userProblemId: string,
+  problem: ProblemInfo
+): Promise<SubmitResult> {
   const questions = await prisma.question.findMany({ where: { reviewSessionId: sessionId } });
 
   const scoreFor = (type: QuestionType) =>
@@ -333,6 +338,10 @@ async function finalizeSession(sessionId: string, problem: ProblemInfo): Promise
       completedAt: new Date(),
     },
   });
+
+  // Milestone 5: push this session's result into the UserProblem's
+  // spaced-repetition state (reviewStage, masteryScore, nextReviewAt).
+  await applyReviewOutcome(userProblemId, overallConfidence);
 
   return {
     sessionComplete: true,
