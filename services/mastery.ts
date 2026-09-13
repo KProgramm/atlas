@@ -55,7 +55,16 @@ export function nextMasteryScore(
  * the UserProblem's current spaced-repetition state, computes the next
  * stage/mastery/due date, and writes it back in one update.
  */
-export async function applyReviewOutcome(userProblemId: string, overallConfidence: number) {
+export type ReviewOutcome = {
+  reviewStage: number;
+  masteryScore: number;
+  nextReviewAt: Date;
+};
+
+export async function applyReviewOutcome(
+  userProblemId: string,
+  overallConfidence: number
+): Promise<ReviewOutcome> {
   const userProblem = await prisma.userProblem.findUniqueOrThrow({
     where: { id: userProblemId },
   });
@@ -70,6 +79,11 @@ export async function applyReviewOutcome(userProblemId: string, overallConfidenc
   const nextReviewAt = new Date();
   nextReviewAt.setDate(nextReviewAt.getDate() + intervalForStage(reviewStage));
 
+  // Returned (not just written) so the caller can show the result right
+  // away -- e.g. "next review in 3 days" on the session results screen --
+  // instead of it silently living only on the UserProblem row. Krish
+  // flagged during review that there was no way to see this without
+  // querying the DB directly.
   await prisma.userProblem.update({
     where: { id: userProblemId },
     data: {
@@ -80,4 +94,6 @@ export async function applyReviewOutcome(userProblemId: string, overallConfidenc
       totalReviews: { increment: 1 },
     },
   });
+
+  return { reviewStage, masteryScore, nextReviewAt };
 }

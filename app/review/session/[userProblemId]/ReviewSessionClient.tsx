@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { formatDaysUntil } from "@/utils/format";
 
 type Question = { id: string; type: string; prompt: string };
 type GradedQuestion = {
@@ -18,6 +19,20 @@ type Scores = {
   adaptabilityScore: number | null;
   communicationScore: number;
   overallConfidence: number;
+};
+type Mastery = {
+  reviewStage: number;
+  masteryScore: number;
+  nextReviewAt: string;
+};
+
+const DIMENSION_INFO: Record<string, string> = {
+  "Pattern recognition": "Did you correctly identify the technique or pattern this problem needed?",
+  Approach: "How clear and well-justified was your explanation of your solution?",
+  Complexity: "Did you correctly state and justify the time and space complexity?",
+  Adaptability: "How you handled the adaptive follow-up question on the spot.",
+  Communication: "How clear and structured your explanations were overall, separate from whether they were correct.",
+  Overall: "The average of the five scores above.",
 };
 
 const TYPE_ORDER: Record<string, number> = {
@@ -50,6 +65,7 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
   const [answerText, setAnswerText] = useState("");
   const [scores, setScores] = useState<Scores | null>(null);
   const [gradedQuestions, setGradedQuestions] = useState<GradedQuestion[]>([]);
+  const [mastery, setMastery] = useState<Mastery | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +125,7 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
       if (data.sessionComplete) {
         setScores(data.scores);
         setGradedQuestions(data.questions);
+        setMastery(data.mastery);
         setPhase("results");
         return;
       }
@@ -149,15 +166,27 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
   if (phase === "results" && scores) {
     return (
       <div className="mt-8 space-y-8">
+        {mastery && (
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+            Next review <span className="font-medium">{formatDaysUntil(new Date(mastery.nextReviewAt))}</span>
+            {" · "}mastery now <span className="font-medium">{Math.round(mastery.masteryScore)}</span>
+            {" · "}review stage <span className="font-medium">{mastery.reviewStage}</span>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <ScoreCard label="Pattern recognition" value={scores.recognitionScore} />
-          <ScoreCard label="Approach" value={scores.approachScore} />
-          <ScoreCard label="Complexity" value={scores.complexityScore} />
-          <ScoreCard label="Adaptability" value={scores.adaptabilityScore} />
-          <ScoreCard label="Communication" value={scores.communicationScore} />
+          <ScoreCard
+            label="Pattern recognition"
+            value={scores.recognitionScore}
+            info={DIMENSION_INFO["Pattern recognition"]}
+          />
+          <ScoreCard label="Approach" value={scores.approachScore} info={DIMENSION_INFO.Approach} />
+          <ScoreCard label="Complexity" value={scores.complexityScore} info={DIMENSION_INFO.Complexity} />
+          <ScoreCard label="Adaptability" value={scores.adaptabilityScore} info={DIMENSION_INFO.Adaptability} />
+          <ScoreCard label="Communication" value={scores.communicationScore} info={DIMENSION_INFO.Communication} />
           <ScoreCard
             label="Overall"
             value={Math.round(scores.overallConfidence)}
+            info={DIMENSION_INFO.Overall}
             highlight
           />
         </div>
@@ -233,10 +262,12 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
 function ScoreCard({
   label,
   value,
+  info,
   highlight,
 }: {
   label: string;
   value: number | null;
+  info?: string;
   highlight?: boolean;
 }) {
   return (
@@ -255,6 +286,15 @@ function ScoreCard({
         {label}
       </p>
       <p className="mt-1 text-2xl font-semibold">{value ?? "—"}</p>
+      {info && (
+        <p
+          className={`mt-1 text-[11px] leading-snug ${
+            highlight ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-400 dark:text-zinc-500"
+          }`}
+        >
+          {info}
+        </p>
+      )}
     </div>
   );
 }

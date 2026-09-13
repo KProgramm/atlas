@@ -13,3 +13,18 @@ export function formatMinutes(totalMinutes: number): string {
 export function formatScore(score: number | null): string {
   return score === null ? "—" : `${Math.round(score)}%`;
 }
+
+/**
+ * "tomorrow", "in 3 days", "in 2 weeks" -- used right after a review
+ * session so the spaced-repetition result (Milestone 5) is visible
+ * instead of only living on the UserProblem row in the DB.
+ */
+export function formatDaysUntil(date: Date): string {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const days = Math.round((date.getTime() - Date.now()) / msPerDay);
+  if (days <= 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days < 14) return `in ${days} days`;
+  const weeks = Math.round(days / 7);
+  return `in ${weeks} week${weeks === 1 ? "" : "s"}`;
+}
