@@ -42,6 +42,9 @@ export default async function ProblemsPage() {
               difficulty={userProblem.problem.difficulty}
               pattern={userProblem.problem.pattern}
               url={userProblem.problem.url}
+              masteryScore={userProblem.masteryScore}
+              totalReviews={userProblem.totalReviews}
+              nextReviewAt={userProblem.nextReviewAt}
             />
           ))}
         </ul>

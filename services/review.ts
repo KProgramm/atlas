@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { openai, CHAT_MODEL } from "@/lib/ai";
-import { applyReviewOutcome } from "@/services/mastery";
+import { applyReviewOutcome, type ReviewOutcome } from "@/services/mastery";
 
 export type QuestionType = "pattern" | "approach" | "complexity" | "follow_up";
 
@@ -122,6 +122,16 @@ async function generateFollowUp(
 ): Promise<string> {
   const weakest = gradedQuestions.reduce((min, q) => (q.score < min.score ? q : min));
 
+  // The model only saw the weakest Q&A here originally, so on an easy
+  // problem where every answer already covered similar ground (e.g. time
+  // complexity coming up in both the approach and complexity answers) it
+  // had no way to know that and would ask about it a third time. Passing
+  // the full transcript plus an explicit "don't repeat" instruction fixes
+  // that -- flagged during Krish's first live test on Two Sum.
+  const transcript = gradedQuestions
+    .map((q, i) => `Q${i + 1} (${q.score}/100): ${q.prompt}\nA${i + 1}: ${q.userAnswer}`)
+    .join("\n\n");
+
   const response = await openai.chat.completions.create({
     model: CHAT_MODEL,
     response_format: { type: "json_object" },
@@ -129,16 +139,18 @@ async function generateFollowUp(
       {
         role: "system",
         content:
-          "You are a technical interviewer asking one adaptive follow-up question based on how the candidate did so far.",
+          "You are a technical interviewer asking one adaptive follow-up question based on how the candidate did so far. Never repeat ground already covered in an earlier answer -- if they already explained time/space complexity well, do not ask them to restate it.",
       },
       {
         role: "user",
         content: `Problem: ${problem.title} (${problem.difficulty})
-Their weakest answer was to: "${weakest.prompt}"
-They answered: "${weakest.userAnswer}"
-Score on that answer: ${weakest.score}/100
 
-Write ONE follow-up question. If the score was low (below 70), probe deeper on that same weak spot to help them think it through. If the score was high, push them further -- a variation of the problem, an edge case, or a "what if the input were streamed" style twist.
+Everything they've answered so far:
+${transcript}
+
+Their weakest answer was to: "${weakest.prompt}" (scored ${weakest.score}/100)
+
+Write ONE follow-up question that builds on this session without repeating a topic they've already covered well. If ${weakest.score} is below 70, probe deeper on that specific weak spot in a NEW way, don't just re-ask the same question. If everything scored well, push into new territory: a variation of the problem, a tricky edge case, or a "what if the input were streamed / much larger" twist.
 Return ONLY JSON: {"prompt": "<the question>"}`,
       },
     ],
@@ -228,6 +240,9 @@ type SubmitResult =
         aiScore: number | null;
         aiFeedback: string | null;
       }[];
+      // Milestone 5's result, surfaced so the results screen can show it
+      // directly instead of it only existing on the UserProblem row.
+      mastery: ReviewOutcome;
     };
 
 export async function submitAnswer(
@@ -341,7 +356,7 @@ async function finalizeSession(
 
   // Milestone 5: push this session's result into the UserProblem's
   // spaced-repetition state (reviewStage, masteryScore, nextReviewAt).
-  await applyReviewOutcome(userProblemId, overallConfidence);
+  const mastery = await applyReviewOutcome(userProblemId, overallConfidence);
 
   return {
     sessionComplete: true,
@@ -360,5 +375,6 @@ async function finalizeSession(
       aiScore: q.aiScore,
       aiFeedback: q.aiFeedback,
     })),
+    mastery,
   };
 }
