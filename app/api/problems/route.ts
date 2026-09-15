@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     tags: Array.isArray(body.tags) ? body.tags : undefined,
     leetcodeId:
       typeof body.leetcodeId === "number" ? body.leetcodeId : undefined,
+    notes: typeof body.notes === "string" ? body.notes.trim() : undefined,
   });
 
   return NextResponse.json({ userProblem }, { status: 201 });

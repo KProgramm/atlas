@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { formatDaysUntil, formatScore } from "@/utils/format";
+import { formatReviewDate, formatScore } from "@/utils/format";
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   Easy: "text-green-600 dark:text-green-400",
@@ -64,12 +64,8 @@ export function ProblemRow({
         <div className="mt-1 flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
           <span className={DIFFICULTY_COLOR[difficulty] ?? ""}>{difficulty}</span>
           {pattern && <span>· {pattern}</span>}
-          {totalReviews > 0 && (
-            <>
-              <span>· mastery {formatScore(masteryScore)}</span>
-              {nextReviewAt && <span>· next review {formatDaysUntil(nextReviewAt)}</span>}
-            </>
-          )}
+          <span>· mastery {totalReviews > 0 ? formatScore(masteryScore) : "not reviewed yet"}</span>
+          <span>· next review {formatReviewDate(nextReviewAt)}</span>
         </div>
       </div>
       <button

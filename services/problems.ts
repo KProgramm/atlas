@@ -10,6 +10,10 @@ export type CreateProblemInput = {
   tags?: string[];
   url?: string;
   leetcodeId?: number;
+  // Context shown at the start of a review session so an old problem is
+  // recognizable by more than its title (services/review.ts). Written to
+  // originalNotes -- the schema already had this field, unused until now.
+  notes?: string;
 };
 
 /**
@@ -57,6 +61,7 @@ export async function createProblemForUser(
       userId: dbUserId,
       problemId: problem.id,
       source: "manual",
+      originalNotes: input.notes || null,
     },
     include: { problem: true },
   });
