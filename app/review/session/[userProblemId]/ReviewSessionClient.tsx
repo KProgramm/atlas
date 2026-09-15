@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { formatDaysUntil } from "@/utils/format";
+import { formatReviewDate } from "@/utils/format";
 
 type Question = { id: string; type: string; prompt: string };
 type GradedQuestion = {
@@ -24,6 +24,14 @@ type Mastery = {
   reviewStage: number;
   masteryScore: number;
   nextReviewAt: string;
+};
+
+type ProblemContext = {
+  title: string;
+  difficulty: string;
+  pattern: string | null;
+  url: string | null;
+  notes: string | null;
 };
 
 const DIMENSION_INFO: Record<string, string> = {
@@ -48,6 +56,12 @@ const TYPE_LABEL: Record<string, string> = {
   follow_up: "Follow-up",
 };
 
+const DIFFICULTY_COLOR: Record<string, string> = {
+  Easy: "text-green-600 dark:text-green-400",
+  Medium: "text-amber-600 dark:text-amber-400",
+  Hard: "text-red-600 dark:text-red-400",
+};
+
 type Phase = "loading" | "answering" | "submitting" | "results" | "error";
 
 // Walks the user through a review session one question at a time.
@@ -66,6 +80,7 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
   const [scores, setScores] = useState<Scores | null>(null);
   const [gradedQuestions, setGradedQuestions] = useState<GradedQuestion[]>([]);
   const [mastery, setMastery] = useState<Mastery | null>(null);
+  const [problem, setProblem] = useState<ProblemContext | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,6 +103,16 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
           (a: Question, b: Question) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type]
         );
         setQuestions(sorted);
+        const userProblem = data.session.userProblem;
+        if (userProblem?.problem) {
+          setProblem({
+            title: userProblem.problem.title,
+            difficulty: userProblem.problem.difficulty,
+            pattern: userProblem.problem.pattern ?? null,
+            url: userProblem.problem.url ?? null,
+            notes: userProblem.originalNotes ?? null,
+          });
+        }
         setPhase("answering");
       } catch (e) {
         if (!cancelled) {
@@ -166,9 +191,10 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
   if (phase === "results" && scores) {
     return (
       <div className="mt-8 space-y-8">
+        {problem && <ProblemHeader problem={problem} />}
         {mastery && (
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-            Next review <span className="font-medium">{formatDaysUntil(new Date(mastery.nextReviewAt))}</span>
+            Next review <span className="font-medium">{formatReviewDate(new Date(mastery.nextReviewAt))}</span>
             {" · "}mastery now <span className="font-medium">{Math.round(mastery.masteryScore)}</span>
             {" · "}review stage <span className="font-medium">{mastery.reviewStage}</span>
           </div>
@@ -231,6 +257,7 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
 
   return (
     <div className="mt-8 space-y-4">
+      {problem && <ProblemHeader problem={problem} />}
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
         Question {currentIndex + 1} of {questions.length}
         {question && ` · ${TYPE_LABEL[question.type] ?? question.type}`}
@@ -255,6 +282,36 @@ export function ReviewSessionClient({ userProblemId }: { userProblemId: string }
       >
         {phase === "submitting" ? "Grading..." : "Submit answer"}
       </button>
+    </div>
+  );
+}
+
+function ProblemHeader({ problem }: { problem: ProblemContext }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="flex flex-wrap items-center gap-2">
+        {problem.url ? (
+          <a
+            href={problem.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-zinc-900 hover:underline dark:text-zinc-50"
+          >
+            {problem.title}
+          </a>
+        ) : (
+          <span className="font-medium text-zinc-900 dark:text-zinc-50">{problem.title}</span>
+        )}
+        <span className={`text-xs ${DIFFICULTY_COLOR[problem.difficulty] ?? "text-zinc-500 dark:text-zinc-400"}`}>
+          {problem.difficulty}
+        </span>
+        {problem.pattern && (
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">· {problem.pattern}</span>
+        )}
+      </div>
+      {problem.notes && (
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{problem.notes}</p>
+      )}
     </div>
   );
 }

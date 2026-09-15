@@ -217,7 +217,7 @@ export async function startReviewSession(dbUserId: string, userProblemId: string
         create: questions.map((q) => ({ type: q.type, prompt: q.prompt })),
       },
     },
-    include: { questions: true },
+    include: { questions: true, userProblem: { include: { problem: true } } },
   });
 }
 
