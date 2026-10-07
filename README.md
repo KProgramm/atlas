@@ -13,19 +13,21 @@ Most spaced-repetition tools are built for flashcards and static facts. Atlas is
 
 ## Screenshots
 
-<table>
-<tr>
-<td width="50%"><img src="docs/images/dashboard.png" width="100%" alt="Dashboard"><br><sub>Dashboard</sub></td>
-<td width="50%"><img src="docs/images/problem-library.png" width="100%" alt="Problem Library"><br><sub>Problem Library</sub></td>
-</tr>
-<tr>
-<td colspan="2"><img src="docs/images/review-results.png" width="55%" alt="Review results"><br><sub>Review results, five score dimensions</sub></td>
-</tr>
-</table>
+**Dashboard**
 
-Sample AI feedback from a graded answer, showing what the grading actually looks like rather than just the score:
+<img src="docs/images/dashboard.png" width="760" alt="Dashboard">
 
-<img src="docs/images/ai-feedback-example.png" width="70%" alt="Sample AI feedback on a graded answer">
+**Problem Library**
+
+<img src="docs/images/problem-library.png" width="760" alt="Problem Library">
+
+**Review results** — five score dimensions, plus the next review date and updated mastery
+
+<img src="docs/images/review-results.png" width="760" alt="Review results, five score dimensions">
+
+**Sample AI feedback** on a graded answer, showing what the grading actually looks like rather than just the score
+
+<img src="docs/images/ai-feedback-example.png" width="760" alt="Sample AI feedback on a graded answer">
 
 ## The spacing algorithm
 
