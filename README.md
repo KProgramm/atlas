@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Atlas
 
-## Getting Started
+An AI-powered spaced-repetition app for LeetCode review, built to solve a real problem: solving 300+ problems and still forgetting how half of them work a few weeks later.
 
-First, run the development server:
+Most spaced-repetition tools are built for flashcards and static facts. Atlas is built for procedural, pattern-based knowledge instead. Given a problem you've solved before, can you still recognize which approach it needs, reason through the complexity, and explain your thinking out loud, without re-reading your old solution?
+
+## How it works
+
+- Add problems you've solved, either from a built-in catalog or as custom entries.
+- When a problem comes up for review, Atlas generates adaptive questions with OpenAI covering pattern recognition, approach, time/space complexity, and communication, then asks a follow-up targeted at wherever your answer was weakest.
+- Each answer is graded across five dimensions, and the result feeds a spaced-repetition scheduler that adjusts when the problem comes back: stronger sessions push it further out, weaker ones bring it back sooner.
+- A dashboard tracks review stats, mastery over time, and recent activity.
+
+## Tech stack
+
+- Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS
+- Clerk for authentication
+- PostgreSQL (Supabase) via Prisma ORM
+- OpenAI API for question generation and grading
+
+## Architecture
+
+- `app/` – UI only, no business logic
+- `app/api/` – thin REST route handlers: parse the request, call a service, return JSON
+- `services/` – all business logic; the only layer that talks to Prisma
+- `prisma/schema.prisma` – data model: User, Problem, UserProblem, ReviewSession, Question
+
+AI never touches the database directly. `services/review.ts` is what persists whatever OpenAI returns.
+
+## Getting started
 
 ```bash
+npm install
+# add your own DATABASE_URL, Clerk keys, and an OpenAI API key to .env.local
+npx prisma generate
+npx prisma db push
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Testing
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm test
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Unit tests cover the spaced-repetition scheduling and mastery-scoring logic (19 tests, scheduler and mastery services).
